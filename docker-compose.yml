@@ -1,0 +1,31 @@
+# Para um servidor próprio (VPS): app + Caddy, que cuida do HTTPS automaticamente.
+# Uso:  copie .env.example para .env, preencha, e rode:  docker compose up -d --build
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:?Defina APP_PASSWORD no arquivo .env}
+    volumes:
+      - dados:/data            # aqui fica o financas.db
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO:?Defina DOMINIO no arquivo .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  dados:
+  caddy_dados:
+  caddy_config:

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Entrar · Controle Financeiro</title>
+  <style>
+    :root {
+      --bg: #f4f6fa; --card: #ffffff; --texto: #1c2430; --suave: #667085;
+      --borda: #e3e7ee; --acento: #2563eb; --erro: #b91c1c; --erro-fundo: #fee2e2;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f141b; --card: #19202a; --texto: #e6eaf0; --suave: #93a0b3;
+        --borda: #2a3442; --acento: #6ea0ff; --erro: #f87171; --erro-fundo: #3b1a1a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+      background: var(--bg); color: var(--texto);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    form {
+      width: min(380px, 100%); padding: 28px; border: 1px solid var(--borda);
+      border-radius: 14px; background: var(--card);
+    }
+    h1 { margin: 0 0 4px; font-size: 1.4rem; }
+    p { margin: 0 0 20px; color: var(--suave); font-size: .9rem; }
+    label { display: block; margin-bottom: 6px; color: var(--suave); font-size: .85rem; }
+    input {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 8px;
+      background: var(--bg); color: var(--texto); font: inherit;
+    }
+    input:focus, button:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+    button {
+      width: 100%; margin-top: 16px; padding: 10px; border: 0; border-radius: 8px;
+      background: var(--acento); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: default; }
+    .erro {
+      margin: 14px 0 0; padding: 8px 10px; border-radius: 8px;
+      background: var(--erro-fundo); color: var(--erro); font-size: .85rem;
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <form id="form" autocomplete="on">
+    <h1>💰 Controle Financeiro</h1>
+    <p>Digite a senha para entrar.</p>
+    <label for="senha">Senha</label>
+    <input id="senha" name="senha" type="password" autocomplete="current-password" required autofocus>
+    <button id="entrar" type="submit">Entrar</button>
+    <div id="erro" class="erro" role="alert" hidden></div>
+  </form>
+
+  <script>
+    const form = document.getElementById("form");
+    const erro = document.getElementById("erro");
+    const botao = document.getElementById("entrar");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      erro.hidden = true;
+      botao.disabled = true;
+      try {
+        const resp = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ senha: document.getElementById("senha").value }),
+        });
+        if (resp.ok) { location.href = "/"; return; }
+        let msg = "Não foi possível entrar.";
+        try { msg = (await resp.json()).detail || msg; } catch (_) {}
+        erro.textContent = msg;
+        erro.hidden = false;
+        document.getElementById("senha").select();
+      } catch (_) {
+        erro.textContent = "Não foi possível falar com o servidor.";
+        erro.hidden = false;
+      } finally {
+        botao.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

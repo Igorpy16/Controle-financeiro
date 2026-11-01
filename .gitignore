@@ -1,0 +1,16 @@
+# Seus dados financeiros e segredos (nunca envie para o GitHub)
+*.db
+*.db-journal
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editores / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

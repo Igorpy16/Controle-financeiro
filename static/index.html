@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controle Financeiro</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <h2>Filtros</h2>
+
+    <div class="campo">
+      <span class="rotulo">Período</span>
+      <div class="segmentos" id="presets">
+        <button data-preset="mes">Mês</button>
+        <button data-preset="3m">3M</button>
+        <button data-preset="6m" class="ativo">6M</button>
+        <button data-preset="ano">Ano</button>
+        <button data-preset="tudo">Tudo</button>
+      </div>
+      <div class="duas datas">
+        <input type="date" id="inicio" aria-label="Data inicial">
+        <input type="date" id="fim" aria-label="Data final">
+      </div>
+    </div>
+
+    <div class="campo">
+      <span class="rotulo">Tipo</span>
+      <div class="segmentos" id="seg-tipo">
+        <button data-valor="" class="ativo">Todos</button>
+        <button data-valor="receita">Receitas</button>
+        <button data-valor="despesa">Despesas</button>
+      </div>
+    </div>
+
+    <div class="campo">
+      <span class="rotulo">Situação</span>
+      <div class="segmentos" id="seg-status">
+        <button data-valor="" class="ativo">Todas</button>
+        <button data-valor="pago">Pagas</button>
+        <button data-valor="pendente">Pendentes</button>
+      </div>
+    </div>
+
+    <label class="campo">
+      <span class="rotulo">Buscar na descrição</span>
+      <input type="search" id="busca" placeholder="ex.: mercado">
+    </label>
+
+    <div class="campo">
+      <span class="rotulo">Categoria</span>
+      <div class="chips" id="chips-categoria"></div>
+    </div>
+    <div class="campo">
+      <span class="rotulo">Conta</span>
+      <div class="chips" id="chips-conta"></div>
+    </div>
+
+    <button id="limpar" class="secundario bloco">Limpar filtros</button>
+
+    <h2 class="espaco">Dados</h2>
+    <label class="botao bloco" for="arquivo">⬆️ Importar CSV</label>
+    <input type="file" id="arquivo" accept=".csv,text/csv" hidden>
+    <button id="apagar" class="perigo bloco">🗑️ Apagar todos os lançamentos</button>
+    <button id="sair" class="secundario bloco" hidden>Sair</button>
+  </aside>
+
+  <main>
+    <header class="topo">
+      <div>
+        <h1>💰 Controle Financeiro</h1>
+      </div>
+      <button id="novo" class="primario">＋ Novo lançamento</button>
+    </header>
+
+    <div id="faixa-demo" class="faixa-demo" hidden>
+      <span>🔎 <strong>Modo demonstração:</strong> dados fictícios e somente leitura. Nada do que você fizer é salvo.</span>
+      <a id="link-repo" href="#" target="_blank" rel="noopener noreferrer" hidden>Ver o código no GitHub ↗</a>
+    </div>
+
+    <div id="aviso" class="aviso" hidden></div>
+
+    <section class="kpis">
+      <div class="kpi"><span>Receitas</span><strong id="kpi-receitas" class="receita">—</strong><em id="var-receitas"></em></div>
+      <div class="kpi"><span>Despesas</span><strong id="kpi-despesas" class="despesa">—</strong><em id="var-despesas"></em></div>
+      <div class="kpi"><span>Saldo do período</span><strong id="kpi-saldo">—</strong><em id="sub-saldo"></em></div>
+      <div class="kpi"><span>Taxa de poupança</span><strong id="kpi-poupanca">—</strong><em>do que entrou, sobrou</em></div>
+      <div class="kpi"><span>A pagar</span><strong id="kpi-apagar">—</strong><em id="sub-apagar"></em></div>
+    </section>
+
+    <section id="painel" class="grade">
+      <div class="cartao largo"><div id="g-mensal" class="grafico"></div></div>
+      <div class="cartao"><div id="g-categorias" class="grafico"></div></div>
+      <div class="cartao bloco-texto">
+        <div class="cartao-topo">
+          <h3 id="orc-titulo">Orçamento</h3>
+          <button id="editar-metas" class="secundario pequeno">Editar metas</button>
+        </div>
+        <div id="orc-lista"></div>
+        <p id="orc-total" class="suave"></p>
+      </div>
+      <div class="cartao bloco-texto">
+        <div class="cartao-topo"><h3>Maiores despesas do período</h3></div>
+        <ol id="top-lista" class="top"></ol>
+      </div>
+      <div class="cartao"><div id="g-contas" class="grafico"></div></div>
+    </section>
+
+    <section class="cartao tabela-wrap">
+      <div class="cartao-topo">
+        <h3>Lançamentos</h3>
+        <a id="baixar" class="botao" href="#">⬇️ Baixar CSV filtrado</a>
+      </div>
+      <div class="rolagem">
+        <table id="tabela">
+          <thead>
+            <tr>
+              <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th>
+              <th class="num">Valor</th><th>Situação</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="paginacao">
+        <button id="ant" class="secundario">← Anterior</button>
+        <span id="pagina-info"></span>
+        <button id="prox" class="secundario">Próxima →</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Formulário de lançamento -->
+  <dialog id="dlg">
+    <form id="form-lanc" autocomplete="off">
+      <h3 id="dlg-titulo">Novo lançamento</h3>
+
+      <div class="tipo-seg">
+        <label><input type="radio" name="tipo" value="despesa" checked><span>Despesa</span></label>
+        <label><input type="radio" name="tipo" value="receita"><span>Receita</span></label>
+      </div>
+
+      <label class="campo">Descrição
+        <input name="descricao" required maxlength="120" placeholder="ex.: Supermercado">
+      </label>
+      <div class="duas">
+        <label class="campo">Valor (R$)
+          <input name="valor" type="number" step="0.01" min="0.01" required inputmode="decimal">
+        </label>
+        <label class="campo">Data
+          <input name="data" type="date" required>
+        </label>
+      </div>
+      <div class="duas">
+        <label class="campo">Categoria
+          <input name="categoria" list="lista-cats" required maxlength="60">
+        </label>
+        <label class="campo">Conta
+          <input name="conta" list="lista-contas" maxlength="60">
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" name="pago" checked> Já foi pago / recebido</label>
+
+      <p id="dlg-erro" class="erro" hidden></p>
+      <div class="acoes">
+        <button type="button" class="secundario" id="dlg-cancelar">Cancelar</button>
+        <button type="submit" class="primario">Salvar</button>
+      </div>
+    </form>
+    <datalist id="lista-cats"></datalist>
+    <datalist id="lista-contas"></datalist>
+  </dialog>
+
+  <!-- Metas de orçamento -->
+  <dialog id="dlg-metas">
+    <form id="form-metas">
+      <h3>Metas de gasto mensal</h3>
+      <p class="suave">Limite por categoria, em R$ por mês. Use 0 para não ter meta.</p>
+      <div id="metas-campos"></div>
+      <p id="metas-erro" class="erro" hidden></p>
+      <div class="acoes">
+        <button type="button" class="secundario" id="metas-cancelar">Cancelar</button>
+        <button type="submit" class="primario">Salvar metas</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
